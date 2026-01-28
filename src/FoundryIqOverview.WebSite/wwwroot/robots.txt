@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://contososoftware.tallesvaliatti.com/sitemap.xml
