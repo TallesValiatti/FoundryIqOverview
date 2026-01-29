@@ -1,6 +1,4 @@
-using Azure.AI.Projects;
 using Azure.AI.Projects.OpenAI;
-using Azure.Identity;
 
 namespace FoundryIqOverview.Console.Services;
 

@@ -5,7 +5,7 @@ public abstract record ResponseEvent;
 public record ResponseContentEvent(string Id, string Message) : ResponseEvent;
 
 
-public record ResponseCompletedEvent(string ResponseId) : ResponseEvent;
+public record ResponseCompletedEvent() : ResponseEvent;
 
 public record ResponseNonMappedEvent(string EventType) : ResponseEvent;
 

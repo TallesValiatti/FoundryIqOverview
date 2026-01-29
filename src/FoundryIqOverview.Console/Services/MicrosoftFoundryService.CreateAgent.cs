@@ -1,8 +1,5 @@
-using System.ClientModel;
-using System.ClientModel.Primitives;
 using Azure.AI.Projects;
 using Azure.AI.Projects.OpenAI;
-using Azure.Identity;
 
 namespace FoundryIqOverview.Console.Services;
 
@@ -23,4 +20,4 @@ public partial class MicrosoftFoundryService
 
         return await GetAgentAsync(agentName);
     }
-};
+}

@@ -38,7 +38,7 @@ public partial class MicrosoftFoundryService
                     break;
                 case StreamingResponseCompletedUpdate completedUpdate:
                     responseId = completedUpdate.Response.Id;
-                    await onUpdate(new ResponseCompletedEvent(completedUpdate.Response.Id));
+                    await onUpdate(new ResponseCompletedEvent());
                     break;
                 default:
                     await onUpdate(new ResponseNonMappedEvent(update.GetType().ToString()));

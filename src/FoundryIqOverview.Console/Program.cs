@@ -6,6 +6,9 @@ using Spectre.Console.Rendering;
 
 #pragma warning disable OPENAI001
 
+var agentName = "contoso-software-agent";
+var projectUrl = "https://tallesdsv8772-resource.services.ai.azure.com/api/projects/tallesdsv8772";
+
 AnsiConsole.Clear();
 
 var prompt = """
@@ -19,9 +22,6 @@ AnsiConsole.Write(
 
 AnsiConsole.MarkupLine(
     $"[yellow]Prompt:[/] [cyan]{prompt} [/]\n"); 
-
-var agentName = "contoso-software-agent";
-var projectUrl = "https://tallesdsv8772-resource.services.ai.azure.com/api/projects/tallesdsv8772";//Environment.GetEnvironmentVariable("PROJECT_ENDPOINT");
 
 if (string.IsNullOrWhiteSpace(projectUrl))
 {
