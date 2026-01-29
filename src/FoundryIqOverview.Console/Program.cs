@@ -1,52 +1,93 @@
-﻿using FoundryIqOverview.Console.Services;
+﻿using System.Text;
+using Spectre.Console;
+using FoundryIqOverview.Console.Services;
 using FoundryIqOverview.Console.Services.Models;
+using Spectre.Console.Rendering;
 
 #pragma warning disable OPENAI001
 
-var agentName = "contoso-software-agent";
-var projectUrl = Environment.GetEnvironmentVariable("PROJECT_ENDPOINT");
-var input = """
-            Explain 
-            (1) the Azure Key Vault authentication scenario called “Application-plus-user”. 
-            (2) Contoso’s SLA policy, including availability commitments, incident severity levels, and its operational details.
-            """;
-    
-var service = new MicrosoftFoundryService(projectUrl!);
+AnsiConsole.Clear();
 
+var prompt = """
+             Explain (1) the Azure Key Vault authentication scenario called “Application-plus-user” (what it means, how the auth flow works, and what permissions the application identity and the user each need), and (2) Contoso’s SLA policy, including availability commitments, incident severity levels, and its operational details.
+             """;
+
+AnsiConsole.Write(
+    new FigletText("Contoso Agent")
+        .Centered()
+        .Color(Color.CornflowerBlue));
+
+AnsiConsole.MarkupLine(
+    $"[yellow]Prompt:[/] [cyan]{prompt} [/]\n"); 
+
+var agentName = "contoso-software-agent";
+var projectUrl = "https://tallesdsv8772-resource.services.ai.azure.com/api/projects/tallesdsv8772";//Environment.GetEnvironmentVariable("PROJECT_ENDPOINT");
+
+if (string.IsNullOrWhiteSpace(projectUrl))
+{
+    AnsiConsole.MarkupLine("[red]PROJECT_ENDPOINT environment variable not set.[/]");
+    return;
+}
+
+var service = new MicrosoftFoundryService(projectUrl);
 var agent = await service.GetAgentAsync(agentName);
 var conversation = await service.CreateConversationAsync();
 
-await service.RunAsync(
-    agent.Name, 
-    agent.Versions.Latest.Version,
-    conversation,
-    input,
-    OnUpdate);
-return;
+var buffer = new StringBuilder();
 
-Task OnUpdate(ResponseEvent arg)
-{
-    switch (arg)
+// Initial renderable (recommended by the official tutorial)
+IRenderable BuildPanel(string content) =>
+    new Panel(new Markup(content))
     {
-        case ResponseContentEvent update: 
-            Console.Write(update.Message);
-            break;
-        case ResponseCompletedEvent completed:
-            Console.WriteLine("\n*** Response completed ***");
-            break;
-        case ResponseMetadataEvent usage:
-            Console.WriteLine("\n*** Usage: Input Tokens: {0}, Output Tokens: {1} ***", usage.InputTokenCount, usage.OutputTokenCount);
-            
-            foreach(var tool in usage.Tools)
+        Header = new PanelHeader("[bold green]Agent Response[/]"),
+        Border = BoxBorder.Rounded,
+        Padding = new Padding(1, 1)
+    };
+
+await AnsiConsole.Live(BuildPanel("[grey]Waiting for agent response...[/]"))
+    .AutoClear(true)
+    .Overflow(VerticalOverflow.Visible)
+    .StartAsync(async ctx =>
+    {
+        await service.RunAsync(
+            agent.Name,
+            agent.Versions.Latest.Version,
+            conversation,
+            prompt,
+            async ev =>
             {
-                Console.WriteLine("*** Used tool: {0} ***", tool);
-            }
-            
-            break;
-        case ResponseNonMappedEvent nonMapped:
-            // Console.WriteLine("*** Non-mapped event received {0}***", nonMapped.EventType);
-            break;
-    }
-    
-    return Task.CompletedTask;
-}
+                switch (ev)
+                {
+                    case ResponseContentEvent update:
+                        buffer.Append(Markup.Escape(update.Message));
+                        ctx.UpdateTarget(BuildPanel(buffer.ToString()));
+                        break;
+
+                    case ResponseCompletedEvent:
+                        buffer.Append("\n\n[bold green]✔ Response completed[/]");
+                        ctx.UpdateTarget(BuildPanel(buffer.ToString()));
+                        break;
+
+                    case ResponseMetadataEvent usage:
+                        buffer.Append($"""
+                            
+                            [grey]────────────────────────────[/]
+                            [bold yellow]Usage[/]
+                            • Input Tokens: [cyan]{usage.InputTokenCount}[/]
+                            • Output Tokens: [cyan]{usage.OutputTokenCount}[/]
+                            
+                            """);
+
+                        foreach (var tool in usage.Tools)
+                        {
+                            buffer.Append($"• Tool used: [magenta]{tool}[/]\n");
+                        }
+
+                        ctx.UpdateTarget(BuildPanel(buffer.ToString()));
+                        break;
+                }
+
+                await Task.CompletedTask;
+            });
+    });
+AnsiConsole.Write(BuildPanel(buffer.ToString()));
